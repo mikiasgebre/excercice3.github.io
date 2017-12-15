@@ -1,0 +1,181 @@
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <title>Excercice3</title>
+    <meta name="description" content="The HTML5 Herald">
+    <meta name="author" content="SitePoint">
+
+    <link rel="stylesheet" href="styles3.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="JsBarcode.code128.min.js"></script>
+
+</head>
+
+<body>
+    <div id="container">
+        <div id="main">
+            <div class="block">
+                <form>
+                    <label> Select the bus line</label>
+                    <select name="bus_line" id="bus_line">
+                    </select>
+                </form>
+            </div>
+            <div class="default-display">
+                <button class="button" id="showbus" onclick="showbus()">Show Buses </button>
+                <button class="button" id="refresh">Refresh </button>
+                <button class="button" id="showroute" onclick="drawLine()">Show Route </button>
+            </div>
+
+        </div>
+        <div class="block" id="showMap" style="width:90%;height:300px;">
+        </div>
+
+    </div>
+
+
+
+
+</body>
+<script>
+
+    var long = [];
+    var lat = [];
+    var LatLngNew;
+    var marker = []
+    var map;
+
+    var requestUrl = "http://data.foli.fi/gtfs/v0/20171130-162538/routes/";
+
+    var request = new XMLHttpRequest();
+    request.open('GET', requestUrl);
+    request.responseType = 'json';
+    request.send();
+    request.onload = function () {
+        var jsonObj = request.response;
+        populateHeader(jsonObj);
+
+    }
+
+    function populateHeader(jsonObj) {
+
+        var col = [];
+        var places = jsonObj;
+
+        for (var i = 0; i < places.length; i++) {
+            var opt = document.createElement("option");
+            opt.value = places[i].route_short_name;
+            opt.innerHTML = places[i].route_long_name;
+            document.getElementById("bus_line").appendChild(opt);
+            var selectoption = document.getElementById("bus_line");
+            var line_bus = selectoption.options[selectoption.selectedIndex].value;
+
+
+        }
+
+    }
+
+    function showbus() {
+
+        var url = "http://data.foli.fi/siri/vm/pretty";
+
+
+        var request = new XMLHttpRequest();
+        request.open('GET', url);
+        request.responseType = 'json';
+        request.send();
+        request.onload = function () {
+            var jsonObj = request.response;
+            populateBus(jsonObj);
+        }
+    }
+
+    function drawLine() {
+
+
+        for (var i = 0; i < long.length; i++) {
+            var flightPlanCoordinates = [
+                { lat: lat[i], lng: long[i] },
+
+            ];
+        }
+        var flightPath = new google.maps.Polyline({
+            path: flightPlanCoordinates,
+            geodesic: true,
+            strokeColor: '#FF0000',
+            strokeOpacity: 1.0,
+            strokeWeight: 2
+        });
+
+
+        flightPath.setMap(map);
+    }
+
+
+
+    function populateBus(jsonObj) {
+
+
+        var buses = jsonObj;
+        var places = jsonObj['result'];
+        var text = places['vehicles'];
+        var selectoption = document.getElementById("bus_line");
+
+
+        var index = [];
+        for (var key in text) {
+            var linename = text[key].publishedlinename;
+            var line_bus = selectoption.options[selectoption.selectedIndex].value;
+
+            if (linename.includes(line_bus)) {
+
+                long.push(text[key].longitude);
+                lat.push(text[key].latitude);
+                LatLngNew = new google.maps.LatLng(text[key].latitude, text[key].longitude);
+            }
+        }
+        init();
+
+    }
+
+
+    function init() {
+        var latlng = new google.maps.LatLng(60.45, 22.26);
+
+        var myOptions = {
+            zoom: 11,
+            center: latlng,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+
+        map = new google.maps.Map(document.getElementById("showMap"), myOptions);
+
+        for (var i = 0; i < long.length; i++) {
+            marker = new google.maps.Marker({
+                position: new google.maps.LatLng(lat[i], long[i]),
+                map: map,
+
+            });
+        }
+    }
+
+    $(document).ready(function () {
+
+        $("#refresh").click(function () {
+            marker.setMap(null);
+            marker.setMap(map);
+
+
+        });
+    });
+
+</script>
+
+
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAvOehUIyfkA2x2mRyw7huDo2sovcD6wXE&callback=init">
+</script>
+
+</html>
